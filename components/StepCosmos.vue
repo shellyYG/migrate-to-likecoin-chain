@@ -44,7 +44,7 @@
     <v-card class="ma-4">
       <v-list-item
         class="grey lighten-5"
-        @click="onClickUseLedger"
+        @click="onClickUseKeplr"
       >
         <img
           class="ml-n3 mr-3"
@@ -80,6 +80,7 @@ import {
   getLedgerCosmosAddress,
 } from '../util/ledger';
 import LedgerDialog from './LedgerDialog.vue';
+import Keplr from '../util/Keplr';
 
 function isValidCosmosWallet(str) {
   return !!str.match(/^cosmos1[ac-hj-np-z02-9]{38}$/);
@@ -100,8 +101,33 @@ export default {
     };
   },
   methods: {
-    onClickUseLedger() {
-      this.showLedger = true;
+    async loginByCosmosWallet(source) { // eslint-disable-line
+      switch (source) {
+        case 'keplr': {
+          await Keplr.initKeplr();
+          const cosmosAddr = await Keplr.getWalletAddress();
+          return cosmosAddr;
+        }
+        default: throw new Error('UNKNOWN_COSMOS_WALLET_SOURCE');
+      }
+    },
+    async signInWithCosmosWallet(source = 'keplr') {
+      this.currentTab = 'loading';
+      try {
+        this.cosmosAddress = await this.loginByCosmosWallet(source);
+        this.submitCosmosAddress();
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    async signInWithPlatform(platform, opt = {}) {
+      this.platform = platform; // leave this line for future platform expansion.
+      this.currentTab = 'loading';
+      const { source } = opt;
+      this.signInWithCosmosWallet(source);
+    },
+    onClickUseKeplr() {
+      this.signInWithPlatform('cosmosWallet', { source: 'keplr' });
     },
     onCancelLedger() {
       this.showLedger = false;

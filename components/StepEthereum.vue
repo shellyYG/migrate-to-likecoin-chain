@@ -48,7 +48,7 @@
     <v-card class="ma-4">
       <v-list-item
         class="grey lighten-5"
-        @click="onClickUseLedger"
+        @click="onClickUseKeplr"
       >
         <img
           class="ml-n3 mr-3"
@@ -158,9 +158,6 @@ export default {
       } finally {
         this.isLoading = false;
       }
-    },
-    onClickUseLedger() {
-      this.type = 'ledger';
     },
     onCancel() {
       this.isError = false;

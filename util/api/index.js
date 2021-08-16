@@ -16,4 +16,4 @@ export const apiGetPendingCosmosMigration = (address, ethMigrationTxHash) => api
   `/migrate/pending/cosmos/${address}?eth_tx=${ethMigrationTxHash}`,
 );
 
-export const apiGetCosmosBalance = (address) => api.get(`/migrate/cosmos/${address}`);
+export const apiGetCosmosBalance = (address) => api.get(`/bank/balances/${address}`);

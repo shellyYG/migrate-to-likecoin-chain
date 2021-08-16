@@ -1,43 +1,35 @@
-import axios from 'axios';
+/* eslint-disable import/no-extraneous-dependencies */
+import { StargateClient } from '@cosmjs/stargate';
+import { decodeTxRaw } from '@cosmjs/proto-signing';
+import { MsgSend } from 'cosmjs-types/cosmos/bank/v1beta1/tx';
+
+import { COSMOS_ENDPOINT } from '../server/config/config';
 import { timeout } from '../common/util/misc';
 
-const api = axios.create({
-  baseURL: '/api/proxy/cosmos/txs',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
 export async function waitForTxToBeMined(txHash) {
-  let tx;
+  let msg;
   let notFoundOnce = false;
-  while (!tx) {
+  const client = await StargateClient.connect(COSMOS_ENDPOINT);
+  while (!msg) {
     /* eslint-disable no-await-in-loop */
     await timeout(1000);
     try {
-      const { data } = await api.get(`/${txHash}`);
-      if (data && data.height) {
-        ({ tx } = data);
-        const {
-          code,
-          logs: [{ success = false } = {}] = [],
-        } = data;
-        const isFailed = (code && code !== '0') || !success;
-        if (isFailed) throw new Error(code);
+      const data = await client.getTx(txHash);
+      if (data) {
+        const { code, tx } = data;
+        if (code) throw new Error(code);
+        const { body } = decodeTxRaw(tx);
+        msg = MsgSend.decode(body.messages[0].value);
       }
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
-      if (err.response && err.response.status === 404) {
-        if (notFoundOnce) throw err;
-        notFoundOnce = true;
-        await timeout(12000); // wait for 2 block + 2s
-      } else {
-        throw err;
-      }
+      if (notFoundOnce) throw err;
+      notFoundOnce = true;
+      await timeout(12000); // wait for 2 block + 2s
     }
   }
-  return tx;
+  return msg;
 }
 
 export default waitForTxToBeMined;
